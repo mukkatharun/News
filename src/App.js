@@ -7,10 +7,13 @@ import { Jumbotron, FormGroup } from 'react-bootstrap';
 
 const DEFAULT_QUERY = 'react';
 const DEFAULT_PAGE = 0;
+const DEFAULT_HPP = 50;
+
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
 const PARAM_PAGE = 'page=';
+const PARAM_HPP = 'hitsPerPage='
 const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}`;
 console.log(url);
 
@@ -23,39 +26,50 @@ class App extends Component {
     super(props);
 
     this.state = {
-      result: null,
-      searchTerm: DEFAULT_QUERY
+      results: null,
+      searchTerm: DEFAULT_QUERY,
+      searchKey: ''
     }
     this.removeItem = this.removeItem.bind(this);
     this.searchValue = this.searchValue.bind(this);
     this.fetchTopStories = this.fetchTopStories.bind(this);
     this.setTopStories = this.setTopStories.bind(this);
     this.onSubmit = this.onSubmit.bind(this);
+    this.checkTopStoriesSearchTerm = this.checkTopStoriesSearchTerm.bind(this);
   }
 
   componentDidMount() {
-    this.fetchTopStories(this.state.searchTerm, DEFAULT_PAGE);
+    const { searchTerm } = this.state;
+    this.setState({ searchKey: searchTerm });
+    this.fetchTopStories(searchTerm, DEFAULT_PAGE);
   }
 
   fetchTopStories(searchTerm, page) {
-    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}`)
+    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
       .then(response => response.json())
       .then(result => this.setTopStories(result))
       .catch(e => e);
   }
 
+  checkTopStoriesSearchTerm(searchTerm){
+    return !this.state.results[searchTerm];
+  }
+
   setTopStories(result) {
-    const {hits, page} = result;
-    const oldHits = page !==0 ? this.state.result.hits : [];
+    const { hits, page } = result;
+    const { results, searchKey } = this.state;
+    // const oldHits = page !==0 ? this.state.result.hits : [];
+    const oldHits = results && results[searchKey] ? results[searchKey].hits : [];
     const updatedHits = [...oldHits, ...hits];
-    this.setState({ result: {hits: updatedHits, page} });
+    this.setState({ results: { ...results, [searchKey]: { hits: updatedHits, page } } });
   }
 
   removeItem(id) {
-    const { result } = this.state;
-    const updatedList = result.hits.filter(item => item.objectID !== id);
+    const { results, searchKey } = this.state;
+    const { hits, page} = results[searchKey];
+    const updatedList = hits.filter(item => item.objectID !== id);
     // this.setState({ result: Object.assign({}, this.state.result, {hits: updatedList}) });
-    this.setState({ result: { ...result, hits: updatedList } });
+    this.setState({ results: { ...results, [searchKey]: { hits: updatedList, page }}});
   }
 
   searchValue(e) {
@@ -63,14 +77,19 @@ class App extends Component {
   }
 
   onSubmit(event) {
-    this.fetchTopStories(this.state.searchTerm, DEFAULT_PAGE);
+    const { searchTerm } = this.state;
+    this.setState({ searchKey: searchTerm });
+
+    if(this.checkTopStoriesSearchTerm(searchTerm)) {
+      this.fetchTopStories(searchTerm, DEFAULT_PAGE);
+    }
     event.preventDefault();
   }
 
   render() {
-    const { result, searchTerm } = this.state;
-    const page = (result && result.page) || 0;
-
+    const { results, searchTerm, searchKey } = this.state;
+    const page = (results && results[searchKey] && results[searchKey].page) || 0;
+    const list = (results && results[searchKey] && results[searchKey].hits) || [];
     return (
       <div>
         <Jumbotron>
@@ -80,13 +99,12 @@ class App extends Component {
             onSubmit={this.onSubmit}
           >News App</Search>
         </Jumbotron>
-        {result &&
-          <Table
-            list={result.hits}
-            searchTerm={searchTerm}
-            removeItem={this.removeItem}
-          />
-        }
+
+        <Table
+          list={list}
+          searchTerm={searchTerm}
+          removeItem={this.removeItem}
+        />
         <div className="text-center alert">
           <Button
             className="btn btn-success"

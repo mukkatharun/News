@@ -3,19 +3,12 @@ import React, { Component } from 'react';
 import list from './list';
 import { Jumbotron, FormGroup } from 'react-bootstrap';
 // import Loading from './Loading';
+import {
+  DEFAULT_QUERY, DEFAULT_PAGE, DEFAULT_HPP, PATH_BASE,
+  PATH_SEARCH, PARAM_PAGE, PARAM_SEARCH, PARAM_HPP
 
+  } from './constants/index';
 
-const DEFAULT_QUERY = 'react';
-const DEFAULT_PAGE = 0;
-const DEFAULT_HPP = 50;
-
-const PATH_BASE = 'https://hn.algolia.com/api/v1';
-const PATH_SEARCH = '/search';
-const PARAM_SEARCH = 'query=';
-const PARAM_PAGE = 'page=';
-const PARAM_HPP = 'hitsPerPage='
-const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}`;
-console.log(url);
 
 const isSearched = (sTerm) => {
   return (item) => !sTerm || item.title.toLowerCase().includes(sTerm.toLowerCase());
